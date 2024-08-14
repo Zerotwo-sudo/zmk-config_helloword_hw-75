@@ -13,15 +13,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - { board: hw75_keyboard@1.1, keymap: hw75_keyboard.keymap  }
-          - { board: hw75_keyboard@1.2, keymap: hw75_keyboard.keymap  }
-          - { board: hw75_dynamic@A,    keymap: hw75_dynamic.keymap   }
-          - { board: hw75_dynamic@B,    keymap: hw75_dynamic.keymap   }
+          - { board: hw75_keyboard@1.1, keymap: hw75_keyboard.keymap }
+          - { board: hw75_keyboard@1.2, keymap: hw75_keyboard.keymap }
+          - { board: hw75_dynamic@A,    keymap: hw75_dynamic.keymap }
+          - { board: hw75_dynamic@B,    keymap: hw75_dynamic.keymap }
 
     steps:
       - name: Prepare variables
         run: |
-          echo "zephyr_version=${ZEPHYR_VERSION}" >> $GITHUB_ENV
+          echo "ZEPHYR_VERSION=3.1.0" >> $GITHUB_ENV
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -38,16 +38,14 @@ jobs:
       - name: Cache west modules
         uses: actions/cache@v3.0.11
         continue-on-error: true
-        env:
-          cache_name: cache-zephyr-${{ env.zephyr_version }}-modules
         with:
           path: |
             modules/
             zephyr/
             zmk/
-          key: ${{ runner.os }}-build-${{ env.cache_name }}-${{ hashFiles('**/west.yml', '**/build.yaml') }}
+          key: ${{ runner.os }}-build-cache-zephyr-${{ env.ZEPHYR_VERSION }}-modules-${{ hashFiles('**/west.yml', '**/build.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache_name }}-
+            ${{ runner.os }}-build-cache-zephyr-${{ env.ZEPHYR_VERSION }}-modules-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
 
@@ -69,7 +67,7 @@ jobs:
 
       - name: Rename artifacts
         run: |
-          mkdir build/artifacts
+          mkdir -p build/artifacts
           if [ -f build/zephyr/zmk.uf2 ]; then
             cp build/zephyr/zmk.uf2 "build/artifacts/${{ matrix.board }}-zmk.uf2"
           fi
@@ -87,7 +85,6 @@ jobs:
   release:
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: build
-
     runs-on: ubuntu-latest
 
     steps:
@@ -104,9 +101,9 @@ jobs:
         id: release
         run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "RELEASE_BODY<<$EOF" >> $GITHUB_OUTPUT
-          sed 's/{{TAG}}/${{ github.ref_name }}/g' .github/RELEASE_TEMPLATE.md >> $GITHUB_OUTPUT
-          echo "$EOF" >> $GITHUB_OUTPUT
+          echo "RELEASE_BODY<<$EOF" >>$GITHUB_OUTPUT
+          cat .github/RELEASE_TEMPLATE.md | sed "s/{{TAG}}/${{ github.ref_name }}/" >>$GITHUB_OUTPUT
+          echo "$EOF" >>$GITHUB_OUTPUT
 
       - name: Publish release
         uses: svenstaro/upload-release-action@v2
