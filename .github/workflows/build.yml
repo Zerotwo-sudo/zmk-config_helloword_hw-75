@@ -29,12 +29,11 @@ jobs:
       - name: Set up build tools
         run: |
           apt-get update
-          apt-get install -y python3-venv python3-pip protobuf-compiler curl
-          python3 -m venv myenv
-          source myenv/bin/activate
-          pip install -U fonttools
-          npm install -g lv_font_conv    
-          pip install -y nodejs
+          apt-get install -y python3-pip protobuf-compiler curl
+          curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+          apt-get install -y nodejs
+          pip install --user -U fonttools
+          npm install -g lv_font_con
           
       - name: Cache west modules
         uses: actions/cache@v3.0.11
